@@ -1,0 +1,98 @@
+services:
+  mysql8:
+    image: mysql:${MYSQL8_IMAGE_VERSION:-8.0.39}
+    container_name: mysql8
+    restart: on-failure:3
+    enviroment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-Root@123}
+      - MYSQL_USER=${MYSQL8_USER_NAME:-admin}
+      - MYSQL_PASSWORD=${MYSQL8_USER_PASSWORD:-Admin@123}
+      - MYSQL_DATABASE=${MYSQL8_DATABASE_NAME:-lotodb}
+    command:
+      [
+        '--character-set-server=utf8mb4',
+        '--collation-server=utf8mb4_general_ci',
+        '--lower_case_table_names=1'
+      ]
+    # mysql 8.x custom.cnf in /etc/mysql/conf.d
+    volumes:
+      - ${DEVOPTS_VOLUME_BASE:-.vm-data}/mysql8/conf:/etc/mysql/conf.d
+      - ${DEVOPTS_VOLUME_BASE:-.vm-data}/mysql8/data:/var/lib/mysql
+      - ${DEVOPTS_VOLUME_BASE:-.vm-data}/mysql8/log:/var/log/mysql
+      - ${DEVOPTS_VOLUME_BASE:-.vm-data}/mysql8/share:/home/share
+      - ${DEVOPTS_VOLUME_BASE:-.vm-data}/mysql8/init:/docker-entrypoint-initdb.d
+    ports:
+      - '${MYSQL8_PORT:-3306}:3306'
+      - '${MYSQL8_XPORT:-33060}:33060'
+    logging:
+      driver: 'json-file'
+      options:
+        'max-size': '1G'
+    networks:
+      - xai-network
+
+  # Redis 7.x
+  redis:
+    image: redis:${REDIS_IMAGE_VERSION:-7-alpine}
+    container_name: redis
+    restart: on-failure:5
+    privileged: true
+    command:
+      [
+        'redis-server',
+        '/etc/redis/redis.conf',
+        '--requirepass', '${REDIS_PASSWORD:-Admin!123}',
+      ]
+    volumes:
+      - ${DEVOPTS_VOLUME_BASE:-.vm-data}/redis/data:/data
+      - ${DEVOPTS_VOLUME_BASE:-.vm-data}/redis/conf:/usr/local/etc/redis
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    logging:
+      driver: 'json-file'
+      options:
+        'max-size': '1G'
+    networks:
+      - xai-network
+
+#postgresql:
+postgres:
+    image: postgres:${POSTGRESQL_IMAGE_VERSION:-15.5-alpine}
+    container_name: postgres
+    restart: on-failure:5
+    enviroment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Admin!123}
+      POSTGRES_DB: ${POSTGRE_DB_NAME:-xaidb}
+      PGDATA: /var/lib/postgresql/data
+    command:
+      [
+        'postgres',
+        '-c', 'max_connections=${POSTGRES_MAX_CONNECTIONS:-100}',
+        '-c','shared_buffers=${POSTGRES_SHARED_BUFFERS:-128MB}',
+        '-c','work_mem=${POSTGRES_WORK_MEM:-4MB}',
+        '-c','maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}',
+        '-c','effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-4096MB}',
+      ]
+    volumes:
+      - ${DEVOPTS_VOLUME_BASE:-.vm-data}/postgresdb/data:/var/lib/postgresql/data
+
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB}"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: 'json-file'
+      options:
+        'max-size': '1G'
+    networks:
+      - xai-network
+
+# Networks
+networks:
+  xai-network:
+    name: xai-network
+    external: true
