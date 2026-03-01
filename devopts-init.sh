@@ -42,7 +42,7 @@ ensure_dir_rw() {
 ensure_dir() {
   local dir="$1"
   if [ -d "$dir" ]; then
-    info "已存在，跳过: $dir"
+    info "目录已存在，跳过: $dir"
   else
     mkdir -p "$dir"
     info "已创建: $dir"
@@ -76,6 +76,26 @@ main() {
       error "仅支持 macOS 或 Linux，当前系统: $os"
       ;;
   esac
+
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "未检测到 Docker，请先安装 Docker 后再执行本脚本。"
+    exit 1
+  fi
+
+  if ! docker info >/dev/null 2>&1; then
+    error "Docker 已安装但当前不可用，请先启动 Docker 服务后重试"
+  fi
+
+  local docker_network="xai-network"
+  if docker network inspect "$docker_network" >/dev/null 2>&1; then
+    echo "Docker 网络已存在: $docker_network，继续执行初始化。"
+  else
+    if docker network create "$docker_network" >/dev/null 2>&1; then
+      echo "Docker 网络创建成功: $docker_network"
+    else
+      error "创建 Docker 网络失败: $docker_network"
+    fi
+  fi
 
   [ -f "$ENV_FILE" ] || error ".env.docker 不存在: $ENV_FILE"
 

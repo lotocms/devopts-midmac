@@ -3,9 +3,9 @@ services:
     image: mysql:${MYSQL8_IMAGE_VERSION:-8.0.39}
     container_name: mysql8
     restart: on-failure:3
-    enviroment:
+    environment:
       - TZ=Asia/Shanghai
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-Root@123}
+      - MYSQL_ROOT_PASSWORD=${MYSQL8_ROOT_PASSWORD:-Root@123}
       - MYSQL_USER=${MYSQL8_USER_NAME:-admin}
       - MYSQL_PASSWORD=${MYSQL8_USER_PASSWORD:-Admin@123}
       - MYSQL_DATABASE=${MYSQL8_DATABASE_NAME:-lotodb}
@@ -46,7 +46,7 @@ services:
       ]
     volumes:
       - ${DEVOPTS_VOLUME_BASE:-.vm-data}/redis/data:/data
-      - ${DEVOPTS_VOLUME_BASE:-.vm-data}/redis/conf:/usr/local/etc/redis
+      - ${DEVOPTS_VOLUME_BASE:-.vm-data}/redis/conf:/etc/redis
     ports:
       - '${REDIS_PORT:-6379}:6379'
     logging:
@@ -56,14 +56,14 @@ services:
     networks:
       - xai-network
 
-#postgresql:
-postgres:
-    image: postgres:${POSTGRESQL_IMAGE_VERSION:-15.5-alpine}
+  #postgresql:
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_VERSION:-15.5-alpine}
     container_name: postgres
     restart: on-failure:5
-    enviroment:
+    environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Admin!123}
-      POSTGRES_DB: ${POSTGRE_DB_NAME:-xaidb}
+      POSTGRES_DB: ${POSTGRES_DB:-xaidb}
       PGDATA: /var/lib/postgresql/data
     command:
       [
@@ -80,7 +80,7 @@ postgres:
     ports:
       - '${POSTGRES_PORT:-5432}:5432'
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d $POSTGRES_DB" ]
       interval: 1s
       timeout: 3s
       retries: 5
