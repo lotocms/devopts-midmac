@@ -1,0 +1,6 @@
+.env
+
+# Ignore
+vm-data/*
+
+.env.*
